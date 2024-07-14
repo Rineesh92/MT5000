@@ -1,0 +1,198 @@
+---
+title: "COVID-19 Pandemic Analysis"
+format: html
+editor: visual
+---
+
+Since late 2019, the COVID-19 outbreak has had a big effect on the world's business and health care systems. This article looks at how the disease spread in Ireland compared to nine other countries. It focuses on important details like the total number of cases, deaths per million people, and long-term trends. The countries in this study were picked because they are geographically and socioeconomically diverse. This was done so that the results of the study could be seen from a wide range of angles.
+
+```{r}
+# Load necessary packages
+if (!requireNamespace("quarto", quietly = TRUE)) {
+  install.packages("quarto", repos = "https://cran.rstudio.com/")
+}
+if (!requireNamespace("ggplot2", quietly = TRUE)) {
+  install.packages("ggplot2", repos = "https://cran.rstudio.com/")
+}
+if (!requireNamespace("dplyr", quietly = TRUE)) {
+  install.packages("dplyr", repos = "https://cran.rstudio.com/")
+}
+
+# Load packages
+library(quarto)
+library(ggplot2)
+library(dplyr)
+
+# Load data
+country_data <- read.csv("path/to/your/country_data.csv")
+
+```
+
+```{r}
+# Check the structure of the data
+str(country_data)
+str(country_metadata)
+
+```
+
+```{r}
+# Display the column names of your data
+colnames(country_data)
+
+```
+
+```{r}
+library(dplyr)
+library(lubridate)
+
+# Load your data (assuming you've already read the data)
+# country_data <- read_csv("path_to/country_data.csv")
+
+data_transformed <- country_data %>%
+  select(location, date, total_cases, total_deaths, population) %>%
+  filter(location %in% c("Ireland", "Country1", "Country2", "Country3", "Country4", "Country5", "Country6", "Country7", "Country8", "Country9")) %>%
+  mutate(cases_per_million = total_cases / population * 1e6, 
+         deaths_per_million = total_deaths / population * 1e6) %>%
+  group_by(location, year = year(date)) %>%
+  summarize(total_cases = sum(total_cases, na.rm = TRUE), 
+            total_deaths = sum(total_deaths, na.rm = TRUE),
+            cases_per_million = sum(cases_per_million, na.rm = TRUE), 
+            deaths_per_million = sum(deaths_per_million, na.rm = TRUE),
+            .groups = "drop")  # This drops the grouping
+
+```
+
+```{r}
+install.packages("rnaturalearth")
+install.packages("rnaturalearthdata")
+install.packages("sf")
+
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# Prepare world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Extract longitude and latitude from world map data
+world_coords <- world %>%
+  select(name_long, geometry) %>%
+  mutate(longitude = st_coordinates(st_centroid(geometry))[, 1],
+         latitude = st_coordinates(st_centroid(geometry))[, 2]) %>%
+  select(name_long, longitude, latitude)
+
+# Join with country_data
+country_data <- country_data %>%
+  left_join(world_coords, by = c("location" = "name_long"))
+
+# Verify if the merge was successful
+head(country_data)
+
+
+```
+
+The study used daily COVID-19 information that was available online to everyone. This information included the total number of cases, deaths, and population. From 2020 to 2022, the study looks at the first wave, the waves that came after, and the vaccine stages of the outbreak. Along with tools like ggplot2 and dplyr, the computer language R was used to process data, display it, and do statistical analysis.
+
+Visual Analysis of a World Map
+
+The World Map picture shows where COVID-19 cases and deaths are occurring per million people in the named countries. For now, it gives a rough idea of the impact in different areas. The way Ireland stands in relation to other countries shows the unique problems it has faced and the progress it has made in managing pandemics.
+
+Bar Chart
+
+The bar chart shows the total number of COVID-19 cases and deaths in each country, along with the number of cases and deaths per million people. This short report gives an account of how the epidemic has affected different groups. Depending on where it is on the chart, Ireland's progress in reducing the health effects of COVID-19 can be compared to that of its peers.
+
+```{r}
+# Create world map chart
+ggplot(data = world) +
+  geom_sf() +
+  geom_point(data = country_data %>% filter(location %in% c("Ireland", "Country1", "Country2", "Country3", "Country4", "Country5", "Country6", "Country7", "Country8", "Country9")), 
+             aes(x = longitude, y = latitude, size = total_cases_per_million, color = total_deaths_per_million), inherit.aes = FALSE) +
+  theme_minimal() +
+  labs(title = "COVID-19 Cases and Deaths per Million by Country",
+       size = "Cases per Million",
+       color = "Deaths per Million")
+
+```
+
+```{r}
+# Create bar chart for total cases and deaths per million
+ggplot(data = data_transformed) +
+  geom_bar(aes(x = location, y = cases_per_million, fill = "Cases per Million"), stat = "identity", position = "dodge") +
+  geom_bar(aes(x = location, y = deaths_per_million, fill = "Deaths per Million"), stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Total COVID-19 Cases and Deaths per Million by Country",
+       x = "Country",
+       y = "Count per Million",
+       fill = "Metric") +
+  scale_fill_manual(values = c("Cases per Million" = "blue", "Deaths per Million" = "red")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+A linear regression line and a scatter plot are used to look at the link between the total number of COVID-19 cases and the number of deaths per million over time. In terms of death rates, this graph shows possible trends and links between the ways that different countries have dealt with the spread of illnesses. The story line of this story shows how strong and flexible Ireland's health care system is during outbreaks.
+
+The Time-Series Chart shows how the number of COVID-19 cases and deaths per million people changed over the course of the study. This graph shows how each country responded to the pandemic, including long-term trends, high points, and steps taken to lessen the effects. This chart's Ireland curve shows how different people react to big events and the steps that were taken to stop the spread.
+
+```{r}
+# Assuming 'data_transformed' was defined earlier, if not, redefine it based on 'country_data'
+
+data_transformed <- country_data %>%
+  filter(location %in% c("Ireland", "Country1", "Country2", "Country3", "Country4", "Country5", "Country6", "Country7", "Country8", "Country9")) %>%
+  mutate(total_cases_per_million = total_cases / population * 1e6,
+         total_deaths_per_million = total_deaths / population * 1e6) %>%
+  select(location, total_cases_per_million, total_deaths_per_million)
+
+
+```
+
+```{r}
+# Create scatter plot with linear regression line
+ggplot(data = data_transformed, aes(x = total_cases_per_million, y = total_deaths_per_million, color = location)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = FALSE, fullrange = TRUE) +
+  theme_minimal() +
+  labs(title = "Scatter Plot of COVID-19 Cases vs Deaths per Million",
+       x = "Total Cases per Million",
+       y = "Total Deaths per Million",
+       color = "Country") +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "bottom")
+
+```
+
+```{r}
+# Assuming 'country_data' contains time-series data for COVID-19 cases and deaths
+
+# Convert date to proper date format if needed
+country_data$date <- as.Date(country_data$date)
+
+# Create time-series chart
+ggplot(data = country_data, aes(x = date, y = total_cases_per_million, color = location)) +
+  geom_line() +
+  geom_line(aes(y = total_deaths_per_million), color = "red") +
+  theme_minimal() +
+  labs(title = "COVID-19 Cases and Deaths per Million Over Time",
+       x = "Date",
+       y = "Cases and Deaths per Million",
+       color = "Country") +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "bottom")
+
+```
+
+The paper shows how flexible Ireland is when it comes to handling public health issues by talking about how it dealt with the COVID-19 spread. When you compare Ireland to other countries, you can see how important it is to have high vaccine rates, flexible policy reactions, and good healthcare systems to stop the spread of illness and lower death rates.
+
+Countries need to keep a close eye on COVID-19 trends and changes to public health policies so they can handle the healing process and stop any more cases from happening. This study makes it easier for countries to work together during health problems, explains how pandemics work, and gives ideas for future public health projects.
+
+-   **World Health Organization (WHO).** (2021). Coronavirus disease (COVID-19) weekly epidemiological update and weekly operational update. Retrieved from <https://www.who.int/emergencies/diseases/novel-coronavirus-2019/situation-reports>
+
+-   **Johns Hopkins University & Medicine.** (2022). COVID-19 Dashboard by the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University. Retrieved from https://coronavirus.jhu.edu/map.html
+
+-   **European Centre for Disease Prevention and Control (ECDC).** (2021). COVID-19 situation dashboard: Weekly updates. Retrieved from <https://www.ecdc.europa.eu/en/covid-19/data>
+
+-   ·**Centers for Disease Control and Prevention (CDC).** (2021). COVID Data Tracker. Retrieved from <https://covid.cdc.gov/covid-data-tracker>
